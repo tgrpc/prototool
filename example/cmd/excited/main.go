@@ -43,6 +43,7 @@ func do() error {
 	if err != nil {
 		return err
 	}
+	log.Println("GRPC foo listen on 0.0.0.0:8080")
 	return grpcServer.Serve(listener)
 }
 
@@ -53,8 +54,9 @@ func newServer() *server {
 }
 
 func (s *server) Exclamation(ctx context.Context, request *foopb.ExclamationRequest) (*foopb.ExclamationResponse, error) {
+	log.Printf("req, cookie:%+v", ctx.Value("cookie"))
 	return &foopb.ExclamationResponse{
-		Value: request.Value + "!",
+		Value: "{Exclamation} Hello," + request.Value + "!",
 	}, nil
 }
 

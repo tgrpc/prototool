@@ -25,6 +25,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -291,6 +292,7 @@ func getRootCommand(exitCodeAddr *int, args []string, stdin io.Reader, stdout io
 			})
 		},
 	}
+
 	flags.bindHeaders(grpcCmd.PersistentFlags())
 	flags.bindCallTimeout(grpcCmd.PersistentFlags())
 	flags.bindConnectTimeout(grpcCmd.PersistentFlags())
@@ -479,11 +481,37 @@ func (f *flags) bindGen(flagSet *pflag.FlagSet) {
 	flagSet.BoolVar(&f.gen, "gen", false, "Print the commands that would be run on gen instead of compile.")
 }
 
-func (f *flags) bindHeaders(flagSet *pflag.FlagSet) {
-	flagSet.StringSliceVarP(&f.headers, "header", "H", []string{}, "Additional request headers in 'name:value' format.")
-	for _, h := range f.headers {
-		fmt.Println(h)
+type tGrpcHeaderFlag struct {
+	value   *[]string
+	changed bool
+}
+
+func newtGrpcHeaderFlag(val []string, p *[]string) *tGrpcHeaderFlag {
+	ssv := new(tGrpcHeaderFlag)
+	ssv.value = p
+	*ssv.value = val
+	return ssv
+}
+
+func (t *tGrpcHeaderFlag) Type() string {
+	return "tgrpcStringSlice"
+}
+func (t *tGrpcHeaderFlag) Set(val string) error {
+	v := strings.Split(val, ";")
+	if !t.changed {
+		*t.value = v
+	} else {
+		*t.value = append(*t.value, v...)
 	}
+	t.changed = true
+	return nil
+}
+func (t *tGrpcHeaderFlag) String() string {
+	return ""
+}
+
+func (f *flags) bindHeaders(flagSet *pflag.FlagSet) {
+	flagSet.VarP(newtGrpcHeaderFlag([]string{}, &f.headers), "header", "H", "Additional request headers in 'name:value' format.")
 }
 
 func (f *flags) bindCallTimeout(flagSet *pflag.FlagSet) {
