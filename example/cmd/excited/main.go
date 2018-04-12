@@ -21,13 +21,14 @@
 package main
 
 import (
-	"context"
 	"io"
 	"log"
 	"net"
 
 	"github.com/tgrpc/prototool/example/gen/proto/go/foo"
+	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 func main() {
@@ -38,6 +39,7 @@ func main() {
 
 func do() error {
 	grpcServer := grpc.NewServer()
+	log.Println("...")
 	foopb.RegisterExcitedServiceServer(grpcServer, newServer())
 	listener, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
@@ -53,8 +55,14 @@ func newServer() *server {
 	return &server{}
 }
 
+func GetInMetadata(ctx context.Context) metadata.MD {
+	md, _ := metadata.FromIncomingContext(ctx)
+	return md
+}
+
 func (s *server) Exclamation(ctx context.Context, request *foopb.ExclamationRequest) (*foopb.ExclamationResponse, error) {
-	log.Printf("req, cookie:%+v", ctx.Value("cookie"))
+	md := GetInMetadata(ctx)
+	log.Printf("req metadate: %+v\n", md)
 	return &foopb.ExclamationResponse{
 		Value: "{Exclamation} Hello," + request.Value + "!",
 	}, nil
